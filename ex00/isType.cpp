@@ -1,5 +1,12 @@
 # include "isType.hpp"
 
+# include <cctype>
+
+bool isChar(const std::string& str)
+{
+	return (str.length() == 1 && !std::isdigit(str[0]));
+}
+
 bool isInt(const std::string& str)
 {
     if (str.empty())
@@ -38,7 +45,33 @@ bool isFloat(const std::string& str)
             return false;
         }
     }
-    return true;
+    return hasDot;
+}
+
+bool isDouble(const std::string& str)
+{
+	if (str.empty())
+		return false;
+
+	bool hasDot = false;
+	size_t i = (str[0] == '+' || str[0] == '-') ? 1 : 0;
+	if (i == str.length())
+		return false;
+
+	for (; i < str.length(); ++i)
+	{
+		if (str[i] == '.')
+		{
+			if (hasDot)
+				return false;
+			hasDot = true;
+		}
+		else if (!std::isdigit(str[i]))
+		{
+			return false;
+		}
+	}
+	return hasDot;
 }
 
 bool isPseudoLiteral(const std::string& str)

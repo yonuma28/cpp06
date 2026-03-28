@@ -1,94 +1,156 @@
-# include "ScalarConverter.hpp"
-# include "isType.hpp"
+#include "ScalarConverter.hpp"
+#include "isType.hpp"
 
-enum e_type {
-    CHAR,
-    INT,
-    FLOAT,
-    DOUBLE,
-    PSEUDO,
-	INVALID
-};
+#include <cerrno>
+#include <cmath>
+#include <cstdlib>
+#include <iomanip>
+#include <iostream>
+#include <limits>
 
-ScalarConverter::e_type ScalarConverter::detectType(const std::string& literal)
+namespace
 {
-    if (isPseudo(literal))
-		return PSEUDO;
-    if (literal.length() == 1 && !std::isdigit(literal[0]))
-		return CHAR;
-    if (isInt(literal))
-		return INT;
-    if (isFloat(literal))
-		return FLOAT;
-    
-    char* endptr;
-    std::strtod(literal.c_str(), &endptr);
+	void printImpossible(void)
+	{
+		std::cout << "char: impossible" << std::endl;
+		std::cout << "int: impossible" << std::endl;
+		std::cout << "float: impossible" << std::endl;
+		std::cout << "double: impossible" << std::endl;
+	}
 
-    if (*endptr == '\0')
-		return DOUBLE;
+	double parseLiteral(ScalarConverter::Type type, const std::string& literal)
+	{
+		if (type == ScalarConverter::TYPE_CHAR)
+			return static_cast<double>(literal[0]);
+		if (type == ScalarConverter::TYPE_INT)
+			return static_cast<double>(std::strtol(literal.c_str(), NULL, 10));
+		return std::strtod(literal.c_str(), NULL);
+	}
 
-    return INVALID;
+	void printChar(double value)
+	{
+		std::cout << "char: ";
+		if (std::isnan(value) || std::isinf(value)
+			|| value < std::numeric_limits<char>::min()
+			|| value > std::numeric_limits<char>::max())
+		{
+			std::cout << "impossible" << std::endl;
+			return;
+		}
+		char c = static_cast<char>(value);
+		if (!std::isprint(static_cast<unsigned char>(c)))
+		{
+			std::cout << "Non displayable" << std::endl;
+			return;
+		}
+		std::cout << "'" << c << "'" << std::endl;
+	}
+
+	void printInt(double value)
+	{
+		std::cout << "int: ";
+		if (std::isnan(value) || std::isinf(value)
+			|| value < std::numeric_limits<int>::min()
+			|| value > std::numeric_limits<int>::max())
+		{
+			std::cout << "impossible" << std::endl;
+			return;
+		}
+		std::cout << static_cast<int>(value) << std::endl;
+	}
+
+	void printFloat(double value)
+	{
+		std::cout << "float: ";
+		if (std::isnan(value))
+		{
+			std::cout << "nanf" << std::endl;
+			return;
+		}
+		if (std::isinf(value))
+		{
+			std::cout << (value < 0 ? "-inff" : "+inff") << std::endl;
+			return;
+		}
+		if (std::fabs(value) > std::numeric_limits<float>::max())
+		{
+			std::cout << "impossible" << std::endl;
+			return;
+		}
+		std::cout << std::fixed << std::setprecision(1)
+			<< static_cast<float>(value) << "f" << std::endl;
+	}
+
+	void printDouble(double value)
+	{
+		std::cout << "double: ";
+		if (std::isnan(value))
+		{
+			std::cout << "nan" << std::endl;
+			return;
+		}
+		if (std::isinf(value))
+		{
+			std::cout << (value < 0 ? "-inf" : "+inf") << std::endl;
+			return;
+		}
+		std::cout << std::fixed << std::setprecision(1) << value << std::endl;
+	}
 }
 
-void ScalarConverter::convert(const std::string& literal) {
-    e_type type = detectType(literal);
-    double d = 0;
-    char* endptr;
+ScalarConverter::ScalarConverter()
+{
+}
 
-    switch (type)
+ScalarConverter::ScalarConverter(const ScalarConverter& other)
+{
+	(void)other;
+}
+
+ScalarConverter& ScalarConverter::operator=(const ScalarConverter& other)
+{
+	(void)other;
+	return *this;
+}
+
+ScalarConverter::~ScalarConverter()
+{
+}
+
+ScalarConverter::Type ScalarConverter::detectType(const std::string& literal)
+{
+	if (isPseudoLiteral(literal))
+		return TYPE_PSEUDO;
+	if (isChar(literal))
+		return TYPE_CHAR;
+	if (isInt(literal))
+		return TYPE_INT;
+	if (isFloat(literal))
+		return TYPE_FLOAT;
+	if (isDouble(literal))
+		return TYPE_DOUBLE;
+	return TYPE_INVALID;
+}
+
+void ScalarConverter::convert(const std::string& literal)
+{
+	Type type = detectType(literal);
+	if (type == TYPE_INVALID)
 	{
-        case CHAR:
-            d = static_cast<double>(literal[0]);
-            break;
-        case INT:
-            d = static_cast<double>(std::atol(literal.c_str()));
-            break;
-        case FLOAT:
-        case DOUBLE:
-        case PSEUDO:
-            d = std::strtod(literal.c_str(), &endptr);
-            break;
-        case INVALID:
-            std::cout << "char: impossible" << std::endl;
-            std::cout << "int: impossible" << std::endl;
-            std::cout << "float: impossible" << std::endl;
-            std::cout << "double: impossible" << std::endl;
-            return;
+		printImpossible();
+		return;
 	}
-	// --- char 表示 ---
-    std::cout << "char: ";
-    if (std::isnan(d) || d < std::numeric_limits<char>::min() || d > std::numeric_limits<char>::max())
-        std::cout << "impossible" << std::endl;
-    else if (!std::isprint(static_cast<int>(d)))
-        std::cout << "Non displayable" << std::endl;
-    else
-        std::cout << "'" << static_cast<char>(d) << "'" << std::endl;
-    
 
-    // --- int 表示 ---
-    std::cout << "int: ";
-    if (std::isnan(d) || std::isinf(d) || d < std::numeric_limits<int>::min() || d > std::numeric_limits<int>::max())
-        std::cout << "impossible" << std::endl;
-    else
-        std::cout << static_cast<int>(d) << std::endl;
-    
+	errno = 0;
+	double value = parseLiteral(type, literal);
+	if (errno == ERANGE && !std::isinf(value))
+	{
+		printImpossible();
+		return;
+	}
 
-    // --- float 表示 ---
-    // 擬似リテラルなら専用の表記、そうでなければ fixed で表示 [cite: 142, 154]
-    std::cout << "float: ";
-    if (std::isnan(d))
-		std::cout << "nanf" << std::endl;
-    else if (std::isinf(d))
-		std::cout << (d < 0 ? "-inff" : "+inff") << std::endl;
-    else
-        std::cout << std::fixed << std::setprecision(1) << static_cast<float>(d) << "f" << std::endl;
-
-    // --- double 表示 ---
-    std::cout << "double: ";
-    if (std::isnan(d))
-		std::cout << "nan" << std::endl;
-    else if (std::isinf(d))
-		std::cout << (d < 0 ? "-inf" : "+inf") << std::endl;
-    else
-        std::cout << std::fixed << std::setprecision(1) << d << std::endl;
+	printChar(value);
+	printInt(value);
+	printFloat(value);
+	printDouble(value);
 }

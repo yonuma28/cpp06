@@ -1,7 +1,7 @@
-NAME = convert
+NAME = identify
 CC = c++
 CFLAGS = -Wall -Wextra -Werror -std=c++98
-SRCS = main.cpp ScalarConverter.cpp isType.cpp
+SRCS = main.cpp Base.cpp functions.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 all: $(NAME)
