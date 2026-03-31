@@ -5,6 +5,8 @@
 
 class B : public Base
 {
+	public:
+		virtual ~B();
 };
 
 #endif
